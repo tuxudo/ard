@@ -3,66 +3,53 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Capsule\Manager as Capsule;
 
-class Ard extends Migration
+class ArdRewriteColumns extends Migration
 {
     private $tableName = 'ard';
-    private $tableNameV2 = 'ard_orig';
 
     public function up()
     {
         $capsule = new Capsule();
-        $migrateData = false;
-
-        if ($capsule::schema()->hasTable($this->tableNameV2)) {
-            // Migration already failed before, but didnt finish
-            throw new Exception("previous failed migration exists");
-        }
-
-        if ($capsule::schema()->hasTable($this->tableName)) {
-            $capsule::schema()->rename($this->tableName, $this->tableNameV2);
-            $migrateData = true;
-        }
-
-        $capsule::schema()->create($this->tableName, function (Blueprint $table) {
-            $table->increments('id');
-            $table->string('serial_number');
-            $table->string('text1');
-            $table->string('text2');
-            $table->string('text3');
-            $table->string('text4');
-        });
-
-        if ($migrateData) {
-            $capsule::unprepared("INSERT INTO 
-                $this->tableName
-            SELECT
-                id,
-                serial_number,
-                Text1,
-                Text2,
-                Text3,
-                Text4
-            FROM
-                $this->tableNameV2");
-            $capsule::schema()->drop($this->tableNameV2);
-        }
-
-        // (Re)create indexes
         $capsule::schema()->table($this->tableName, function (Blueprint $table) {
-            $table->unique('serial_number');
-            $table->index('text1');
-            $table->index('text2');
-            $table->index('text3');
-            $table->index('text4');
+            $table->boolean('console_allows_remote')->nullable();
+            $table->boolean('load_menu_extra')->nullable();
+            $table->boolean('screensharing_request_permission')->nullable();
+            $table->boolean('vnc_enabled')->nullable();
+            $table->boolean('allow_all_local_users')->nullable();
+            $table->boolean('directory_login')->nullable();
+            $table->mediumText('admin_machines')->nullable();
+            $table->mediumText('administrators')->nullable();
+            $table->mediumText('task_servers')->nullable();
+            
+            // Create indexes
+            $table->index('console_allows_remote');
+            $table->index('load_menu_extra');
+            $table->index('screensharing_request_permission');
+            $table->index('vnc_enabled');
+            $table->index('allow_all_local_users');
+            $table->index('directory_login');
+            
+            // Change existing columns
+            $table->string('text1')->nullable()->change();
+            $table->string('text2')->nullable()->change();
+            $table->string('text3')->nullable()->change();
+            $table->string('text4')->nullable()->change();
         });
     }
-
+    
     public function down()
     {
         $capsule = new Capsule();
-        $capsule::schema()->dropIfExists($this->tableName);
-        if ($capsule::schema()->hasTable($this->tableNameV2)) {
-            $capsule::schema()->rename($this->tableNameV2, $this->tableName);
-        }
+        $capsule::schema()->table($this->tableName, function (Blueprint $table) {
+            $table->dropColumn('console_allows_remote');
+            $table->dropColumn('load_menu_extra');
+            $table->dropColumn('screensharing_request_permission');
+            $table->dropColumn('vnc_enabled');
+            $table->dropColumn('allow_all_local_users');
+            $table->dropColumn('directory_login');
+            $table->dropColumn('admin_machines');
+            $table->dropColumn('administrators');
+            $table->dropColumn('task_servers');         
+        });
     }
 }
